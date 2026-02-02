@@ -1,0 +1,137 @@
+/* ===========================
+   Global typography + layout
+   =========================== */
+
+:root{
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --bg: #ffffff;
+  --bg-soft: #f9fafb;
+}
+
+body{
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* Make content a bit wider (optional) */
+#quarto-content, .content{
+  max-width: 1100px;
+}
+
+/* Headings: cleaner, less bulky */
+h1, h2, h3{
+  letter-spacing: -0.01em;
+}
+h1{ font-size: 2rem; margin-bottom: .2rem; }
+h2{ font-size: 1.35rem; margin-top: 1.5rem; }
+h3{ font-size: 1.1rem; margin-top: 1.0rem; color: var(--text); }
+
+/* ===========================
+   Tables (gt / gtsummary)
+   =========================== */
+
+/* Ensure tables can scroll horizontally on narrow screens */
+.table-responsive, .gt_table, table{
+  max-width: 100%;
+}
+
+/* Quarto adds this for many html tables */
+.table-responsive{
+  overflow-x: auto;
+}
+
+/* GT tables */
+.gt_table{
+  font-family: inherit;
+  font-size: 0.92rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Header styling */
+.gt_col_headings{
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+}
+.gt_col_heading{
+  font-weight: 600;
+  color: var(--text);
+  padding: 10px 12px !important;
+}
+
+/* Row striping */
+.gt_table_body .gt_row:nth-child(even){
+  background: #fcfcfd;
+}
+
+/* Cell padding + borders */
+.gt_row, .gt_cell{
+  border-top: 1px solid var(--border) !important;
+}
+.gt_cell{
+  padding: 10px 12px !important;
+  vertical-align: top;
+}
+
+/* Row group labels (like variable names) */
+.gt_group_heading{
+  background: var(--bg-soft);
+  font-weight: 700;
+  color: var(--text);
+  border-top: 1px solid var(--border);
+  padding: 10px 12px !important;
+}
+
+/* Footnotes / source notes */
+.gt_footnotes, .gt_sourcenotes{
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Make gtsummary-like “label” column slightly stronger */
+.gt_stub{
+  font-weight: 600;
+}
+
+/* Optional: tighten long tables a bit */
+.gt_table .gt_cell{
+  line-height: 1.25;
+}
+
+/* Optional: make the table caption look nice */
+caption{
+  caption-side: top;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* ===========================
+   OPTIONAL: sticky column headings
+   (works best when table is inside a scrolling container)
+   =========================== */
+.gt_col_headings{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* ===========================
+   OPTIONAL: code blocks a bit cleaner
+   =========================== */
+pre, code{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+               "Liberation Mono", "Courier New", monospace;
+}
+pre{
+  background: #0b1020;
+  color: #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  overflow-x: auto;
+}
