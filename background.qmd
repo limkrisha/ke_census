@@ -26,7 +26,7 @@ source(here("3_code", "3_helper_functions.R"))
 
 -   Surveys have been performed from `r format(as.Date(first(clean$survey_date), format = "%m-%d-%y"), "%b %d %Y")` until `r format(as.Date(last(clean$survey_date), format = "%m-%d-%y"), "%b %d %Y")` .
 
-```{r}
+```{r, echo = F}
 clean %>%
   tbl_summary(
     include = geo_community,
