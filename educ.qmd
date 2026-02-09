@@ -11,12 +11,8 @@ editor: visual
 
 ```{r load, echo = F, message = F, warning=F}
 pacman::p_load(dplyr, here, tidyverse, readr, readxl, janitor, gtsummary, lubridate, gtsummary)
+source(here("code", "1_setup.R"))
 
-clean <- read_csv(here("0_data", "20260204_kenya_selected_cols.csv")) %>% 
-  select(-date)
-
-source(here("3_code", "2_set_levels.R"))
-source(here("3_code", "3_helper_functions.R"))
 ```
 
 ## Education

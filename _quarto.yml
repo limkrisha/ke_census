@@ -6,6 +6,8 @@ website:
   title: "Kenya Census 2026"
   navbar:
     left:
+      - text: "Surveys"
+        href: surveys.qmd
       - text: "Background"
         href: background.qmd
       - text: "Education"

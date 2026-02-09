@@ -11,30 +11,15 @@ editor: visual
 
 ```{r background, echo = F}
 pacman::p_load(dplyr, here, tidyverse, readr, readxl, janitor, gtsummary, lubridate, gtsummary)
-
-clean <- read_csv(here("0_data", "20260204_kenya_selected_cols.csv"), show_col_types = F) %>% 
-  select(-date)
-
-source(here("3_code", "2_set_levels.R"))
-source(here("3_code", "3_helper_functions.R"))
+source(here("code", "1_setup.R"))
 
 ```
 
-## Background
+## Background Questions
 
--   Data downloaded on February 3, 2026
+```{r bg, echo = F}
 
--   Surveys have been performed from `r format(as.Date(first(clean$survey_date), format = "%m-%d-%y"), "%b %d %Y")` until `r format(as.Date(last(clean$survey_date), format = "%m-%d-%y"), "%b %d %Y")` .
-
-```{r, echo = F}
-clean %>%
-  tbl_summary(
-    include = geo_community,
-    statistic = all_categorical() ~ "{n}",
-    missing = "no",
-    label = list(geo_community ~ "Community")
-  ) %>%
-  modify_footnote(everything() ~ NA)
+make_tbl_by_comm(clean, bg_vars)  %>% 
+  as_gt() %>%
+  opt_row_striping()
 ```
-
-## 

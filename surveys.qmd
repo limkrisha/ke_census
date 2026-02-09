@@ -1,0 +1,246 @@
+---
+title: "Kenya Census"
+format:
+  html:
+    theme: cosmo
+    page-layout: full
+    toc: false
+    css: styles.css
+editor: visual
+---
+
+```{r background, echo = F}
+pacman::p_load(dplyr, here, tidyverse, readr, readxl, janitor, gtsummary, lubridate, gtsummary)
+source(here("code", "1_setup.R"))
+```
+
+## Survey
+
+-   Data downloaded on February 9, 2026
+
+-   Surveys have been performed from `r format(as.Date(first(clean$survey_date), format = "%m-%d-%y"), "%b %d %Y")` until `r format(as.Date(max(clean$survey_date), format = "%m-%d-%y"), "%b %d %Y")` .
+
+## Surveyed per community
+
+```{r, echo = F}
+clean %>%
+  tbl_summary(
+    include = geo_community,
+    statistic = all_categorical() ~ "{n}",
+    missing = "no",
+    label = list(geo_community ~ "Community")
+  ) %>%
+  modify_footnote(everything() ~ NA)  %>%  
+  as_gt() %>%
+  opt_row_striping()
+```
+
+## Surveys per village
+
+```{r village, echo=F}
+village_by_comm <- clean %>%
+  filter(!is.na(geo_community), !is.na(village_label), village_label != "") %>%
+  count(geo_community, village_label, name = "n_surveyed") %>%
+  group_by(geo_community) %>%
+  mutate(
+    comm_n = sum(n_surveyed),
+    pct_comm = n_surveyed / comm_n
+  ) %>%
+  ungroup() %>%
+  arrange(geo_community, desc(n_surveyed)) %>%
+  mutate(
+    geo_community_grp = paste0(geo_community, "\n(n=", comm_n, ")")
+  )
+
+village_tbl <- village_by_comm %>%
+  transmute(
+    Community = geo_community,
+    Village   = village_label,
+    `N surveyed` = n_surveyed,
+    `% of community` = pct_comm
+  ) %>%
+  arrange(Community, desc(`N surveyed`)) %>%
+  group_by(Community) %>%
+  mutate(
+    # show community only on the first row of each block (pseudo-merge)
+    Community = if_else(row_number() == 1, as.character(Community), "")
+  ) %>%
+  ungroup()
+
+gt_tbl <- village_tbl %>%
+  gt() %>%
+  fmt_number(columns = `N surveyed`, decimals = 0) %>%
+  fmt_percent(columns = `% of community`, decimals = 1) %>%
+  # make the layout feel like Excel
+  cols_align(align = "left",  columns = c(Community, Village)) %>%
+  cols_align(align = "right", columns = c(`N surveyed`, `% of community`)) %>%
+  cols_width(
+    Community ~ px(140),
+    Village ~ px(260),
+    `N surveyed` ~ px(120),
+    `% of community` ~ px(150)
+  ) %>%
+  # bold village names
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = Village)
+  ) %>%
+  # shade + bold the “community header” cells (the non-blank ones)
+  tab_style(
+    style = list(
+      cell_fill(color = "#f3f4f6"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      columns = Community,
+      rows = Community != ""
+    )
+  ) %>%
+  # remove extra gridlines + add subtle striping
+  opt_row_striping() %>%
+  tab_options(
+    table.font.size = "14px",
+    data_row.padding = px(6),
+    table.border.top.width = px(0),
+    table.border.bottom.width = px(0)
+  )
+
+gt_tbl
+```
+
+## Enumerator
+
+```{r enum, echo = F}
+
+enum_day <- clean %>%
+  filter(!is.na(enumerator), !is.na(survey_date)) %>%
+  count(enumerator, survey_date, name = "n_surveys")
+
+enum_avg_per_day <- enum_day %>%
+  group_by(enumerator) %>%
+  summarise(
+    days_worked = n(),
+    total_surveys = sum(n_surveys),
+    avg_surveys_per_day = mean(n_surveys),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(avg_surveys_per_day))
+
+enum_avg_per_day %>%
+  gt() %>%
+  cols_label(
+    enumerator = "Enumerator",
+    days_worked = "Days worked",
+    total_surveys = "Total surveys",
+    avg_surveys_per_day = "Avg surveys/day"
+  ) %>%
+  fmt_number(avg_surveys_per_day, decimals = 1) %>%
+  opt_row_striping()
+```
+
+The following enumerator names have been modified:
+
+-   "Edwin" and "Edwin." -\> Edwin
+
+-   "Felix" and "Fleix" -\> Felix
+
+-   "Hellen Kyalo" and "Hellena Kyalo" -\> Hellen Kyalo
+
+-   "Jotham" and "Jotham Mwebdwa" and "Jotham Mwendwa" -\> Jotham Mwendwa
+
+-   "Vero" and "Veronica" -\> Veronica
+
+```{r, include = F}
+
+# Respondent Background
+# 
+# While most (r round(mean(clean$hh_gender == "Female", na.rm = TRUE) * 100, 0)%) respondents are women, there are some communities with higher shares of female respondents (e.g., Mutirithia and Minyalala) compared to others who are closer to gender balance. Average household size across communities is r round(mean(clean$hh_size, na.rm = TRUE), 1) members, with some communities reporting notably larger households.
+# 
+# Awareness of 410 Bridge programs is very high overall (r round(mean(clean$know_410 == "Yes", na.rm = TRUE) * 100, 0)%) except Minyalala, suggesting a need to strengthen communication or visibility there. Awareness of the CBO/Leadership Council is lower overall (r round(mean(clean$know_leadership == "Yes", na.rm = TRUE) * 100, 0)%) and varies more widely across communities, indicating that leadership structures may not be equally visible or engaged everywhere.
+# 
+# ### What stands out
+# 
+# **1) Respondents are mostly women — but not everywhere equally**
+# 
+# Overall respondents are predominantly women, but this varies across communities:
+# 
+# - Mutirithia and Minyalala show particularly high proportions of female respondents.
+# 
+# - Kahuria is closer to gender balance.
+# 
+# - Other communities fall between these patterns.
+# 
+# This likely reflects who is available at home during survey visits rather than true population structure.
+# 
+# 👉 *Interpretation:* responses may lean more toward women's perspectives, particularly on schooling, household welfare, and livelihoods.
+# 
+# ---
+# 
+# **2) Household size varies meaningfully**
+# 
+# Average household size is about r round(mean(clean$hh_size, na.rm = TRUE), 1) people, but communities differ:
+# 
+# - Mutirithia shows the largest average household size.
+# 
+# - Ndibai shows the smallest average household size.
+# 
+# - Other communities fall between these extremes.
+# 
+# 👉 Larger household sizes can imply greater pressure on:
+# 
+# - schooling demand,
+# 
+# - food security,
+# 
+# - household income,
+# 
+# - and water and sanitation services.
+# 
+# ---
+# 
+# **3) Awareness of 410 Bridge is almost universal — except one place**
+# 
+# Most communities report near-universal awareness of 410 Bridge programs, but:
+# 
+# - Minyalala shows noticeably lower awareness compared to other communities.
+# 
+# 👉 This community stands out as an outlier and may benefit from strengthened communication or program visibility.
+# 
+# ---
+# 
+# **4) Leadership awareness is weaker and uneven**
+# 
+# Only about r round(mean(clean$know_leadership == "Yes", na.rm = TRUE) * 100, 0)% of respondents overall report knowing about the leadership council, with large differences across communities:
+# 
+# - Ndibai and Minyalala show lower awareness.
+# 
+# - Mutirithia reports nearly universal awareness.
+# 
+# 👉 Leadership visibility appears less consistent than program visibility.
+# 
+# ---
+# 
+# ### Program questions to consider
+# 
+# These findings suggest several operational questions for program teams:
+# 
+# - Why is awareness of 410 Bridge programs lower in Minyalala?
+# 
+# Is implementation newer or less visible?
+# 
+# Are community meetings or partner engagement less active?
+# 
+# - Why does Ndibai show lower leadership awareness despite strong program awareness?
+# 
+# Are leadership structures less visible or less connected to households?
+# 
+# - Are we primarily hearing women's voices in survey responses?
+# 
+# Could this influence reported priorities?
+# 
+# Should some modules intentionally include more male respondents?
+# 
+# - Do communities with larger households, such as Mutirithia, face higher pressure on income, food, and services?
+# 
+# Should program support differ accordingly?
+```
