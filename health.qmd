@@ -1,0 +1,251 @@
+---
+title: "Kenya Census"
+format:
+  html:
+    theme: cosmo
+    page-layout: full
+    toc: false
+    css: styles.css
+editor: visual
+---
+
+```{r load, echo = F, message = F, warning=F}
+pacman::p_load(dplyr, here, tidyverse, readr, readxl, janitor, gtsummary, lubridate, gtsummary)
+source(here("code", "1_setup.R"))
+
+```
+
+# Where respondent seek treatment first
+
+```{r seektreat, echo = F}
+health_vars <- c("health_seek_first_clean")
+
+health_single <- make_tbl_by_comm(
+  clean,
+  health_vars,
+  label_list = list(
+    health_seek_first_clean ~ "Where do you seek treatment first?"
+  )
+)
+
+health_single   %>% 
+  as_gt() %>%
+  opt_row_striping()
+```
+
+## Other treatment options
+
+```{r seektreat_other, echo = F}
+clean %>%
+  filter(health_seek_first_clean == "Other",
+         !is.na(health_seek_first_other),
+         health_seek_first_other != "") %>%
+  count(geo_community, health_seek_first_other, name = "Count") %>%
+  arrange(desc(Count)) %>%   # <-- sort here
+  gt::gt() %>%
+  gt::cols_label(
+    geo_community = "Community",
+    health_seek_first_other = "Other responses"
+  ) %>%
+  gt::fmt_number(columns = Count, decimals = 0) %>%
+  gt::opt_row_striping()
+```
+
+# Health questions
+
+```{r healthvars, echo = F}
+health_vars <- c("health_travel_time","health_chp_visit_monthly","health_chp_econ_beneficiary", "health_sick_3mo","health_sick_treat_seek","health_program_aware"
+)
+
+health_single <- make_tbl_by_comm(clean, health_vars)
+health_single   %>% 
+  as_gt() %>%
+  opt_row_striping()
+```
+
+## Other health programs
+
+**Note on response standardization**
+
+The following health program responses were consolidated to improve readability while preserving meaning:
+
+-   Responses mentioning **410 Bridge or 410-supported activities** (e.g., *410 Bridge*, *410 health program(s)*, *410 medical camp*, *410 health camping*, etc.) were grouped as **\"410-related.\"**
+
+-   Variations of **medical camps** (e.g., *medical camp*, *medical camps*, *medical camp\'s*) were grouped as **\"Medical camp.\"**
+
+-   Variations of **free medical camps** (e.g., *free medical camp*, *free medical camps*, *free medical*) were grouped as **\"Free medical camp.\"**
+
+-   Responses mentioning **deworming activities** (e.g., *deworming*, *deworming of pupils*, *pupils deworming*, *deworming by county government*, etc.) were grouped as **\"Deworming.\"**
+
+-   Variations of **vaccination activities** (e.g., *vaccination*, *vaccinations*, *vaccines*, *child vaccination*) were grouped as **\"Vaccination.\"**
+
+-   Variations of **Community Health Promoter (CHP) activities** (e.g., *CHP*, *Chp*, *CHPs*) were grouped as **\"CHP.\"**
+
+-   References to **CHP trainings or refresher activities** (e.g., *CHPs training*, *refresher course*, *training of CHPs*, *CHPs train on polio management*, etc.) were grouped as **\"CHP training.\"**
+
+-   Variations referring to **distribution of mosquito nets** (e.g., *net distribution*, *nets distribution*, *net supply*, *giving out nets*, *mosquito nets*) were grouped as **\"Net distribution.\"**
+
+-   Variations referring to **health screening activities** (e.g., *cancer screening*, *cervical cancer screening*, *screening*) were grouped as **\"Screening.\"**
+
+-   Variations referring to **community health outreach or organizations** (e.g., *community outreach*, *community-based health organization*, county outreach programs) were grouped as **\"Community outreach.\"**
+
+-   Variations of **Dignity for Girls programming** (e.g., *dignity for girls*, *dignity for girls and boys*) were grouped as **\"Dignity for girls.\"**
+
+-   Variations referring to **health insurance registration** (e.g., *SHA registration*, *Social Health Insurance Fund registration*) were grouped as **\"Health insurance registration.\"**
+
+-   Variations referring to **maternal health programs** (e.g., *maternal health*, training for expectant mothers) were grouped as **\"Maternal health.\"**
+
+-   Entries indicating **no program mentioned** (e.g., *No*, *None*) were grouped as **\"None.\"**
+
+-   All other responses were retained as originally recorded.
+
+```{r other_health_programs, echo = F}
+health_prog_merged <- clean %>%
+  filter(!is.na(health_program_list), health_program_list != "") %>%
+  separate_rows(health_program_list, sep = "[;,]") %>%
+  mutate(program_raw = str_squish(health_program_list)) %>%
+  filter(program_raw != "") %>%
+  mutate(
+    program_group = case_when(
+       str_detect(program_raw, regex("^aka\\s*sivitali\\.?ulu$", ignore_case = TRUE)) ~ "Aka sivitali ulu",
+
+    str_detect(program_raw, regex("^children\\s+vacation$", ignore_case = TRUE)) ~ "Vaccination",
+
+    str_detect(program_raw, regex("^chps?\\s*imitiatives$|^chps?\\s*initiatives$", ignore_case = TRUE)) ~ "CHP",
+    str_detect(program_raw, regex("^community\\s+health\\s+promoters?$", ignore_case = TRUE)) ~ "CHP",
+
+    
+      # 410-related (any mention of 410 or 410 Bridge)
+      str_detect(program_raw, regex("\\b410\\b|410\\s*bridge|^410", ignore_case = TRUE)) ~ "410-related",
+
+      # Keep FREE medical camp separate from Medical camp
+      str_detect(program_raw, regex("free\\s+medical\\s+camp", ignore_case = TRUE)) ~ "Free medical camp",
+      str_detect(program_raw, regex("medical\\s+camp", ignore_case = TRUE)) ~ "Medical camp",
+
+      # Deworming (anything that mentions deworming)
+      str_detect(program_raw, regex("deworm", ignore_case = TRUE)) ~ "Deworming",
+
+      # Vaccination/vaccinations/vaccines
+      str_detect(program_raw, regex("^vaccin", ignore_case = TRUE)) ~ "Vaccination",
+
+      # CHP variants (CHP, Chps, chp, etc.)
+      str_detect(program_raw, regex("^chp(s)?$|\\bchp\\b", ignore_case = TRUE)) ~ "CHP",
+      
+      # Nets
+  str_detect(program_raw, regex("net", TRUE)) ~ "Net distribution",
+
+  # Screening (keep health screening separate if you want)
+  str_detect(program_raw, regex("cancer screening|cervical cancer screening|\\bscreening\\b", TRUE)) ~ "Screening",
+
+  # CHP training bucket (optional but helpful)
+  str_detect(program_raw, regex("refresher|train|training|first aid|polio management|doctors association", TRUE)) &
+    str_detect(program_raw, regex("\\bchp", TRUE)) ~ "CHP training",
+
+  # Outreach / community org
+  str_detect(program_raw, regex("outreach|community based health organisation", TRUE)) ~ "Community outreach",
+
+  # Dignity (optional)
+  str_detect(program_raw, regex("dignity for girls", TRUE)) ~ "Dignity for girls",
+
+  # Insurance (optional)
+  str_detect(program_raw, regex("sha registration|social health insurance", TRUE)) ~ "Health insurance registration",
+
+  # Maternal (optional)
+  str_detect(program_raw, regex("maternal|expectant mothers", TRUE)) ~ "Maternal health",
+
+  # None / No (optional)
+  str_detect(program_raw, regex("^no$|^none$", TRUE)) ~ "None",
+
+      TRUE ~ str_to_sentence(program_raw)  # keep others readable but unmerged
+    )
+  ) %>%
+  count(program_group, name = "Count", sort = TRUE)
+
+health_prog_merged %>%
+  gt() %>%
+  tab_header(title = "Health programs mentioned") %>%
+  cols_label(program_group = "Program", Count = "Count") %>%
+  fmt_number(columns = Count, decimals = 0) %>%
+  opt_row_striping()
+
+
+```
+
+## Other health programs (disaggregated by community)
+
+```{r other_health_comm, echo = F}
+health_prog_by_comm <- clean %>%
+  filter(!is.na(health_program_list), health_program_list != "") %>%
+  separate_rows(health_program_list, sep = "[;,]") %>%
+  mutate(program_raw = str_squish(health_program_list)) %>%
+  filter(program_raw != "") %>%
+  mutate(
+    program_group = case_when(
+       str_detect(program_raw, regex("^aka\\s*sivitali\\.?ulu$", ignore_case = TRUE)) ~ "Aka sivitali ulu",
+
+    str_detect(program_raw, regex("^children\\s+vacation$", ignore_case = TRUE)) ~ "Vaccination",
+
+    str_detect(program_raw, regex("^chps?\\s*imitiatives$|^chps?\\s*initiatives$", ignore_case = TRUE)) ~ "CHP",
+    str_detect(program_raw, regex("^community\\s+health\\s+promoters?$", ignore_case = TRUE)) ~ "CHP",
+      # 410-related
+      str_detect(program_raw, regex("\\b410\\b|410\\s*bridge|^410", ignore_case = TRUE)) ~ "410-related",
+
+      # keep FREE medical camp separate from Medical camp
+      str_detect(program_raw, regex("free\\s+medical\\s+camp", ignore_case = TRUE)) ~ "Free medical camp",
+      str_detect(program_raw, regex("medical\\s+camp", ignore_case = TRUE)) ~ "Medical camp",
+
+      # deworming
+      str_detect(program_raw, regex("deworm", ignore_case = TRUE)) ~ "Deworming",
+
+      # vaccination
+      str_detect(program_raw, regex("^vaccin", ignore_case = TRUE)) ~ "Vaccination",
+
+      # CHP training (must come before CHP)
+      str_detect(program_raw, regex("refresher|train|training|first aid|polio management|doctors association", TRUE)) &
+        str_detect(program_raw, regex("\\bchp", TRUE)) ~ "CHP training",
+
+      # CHP variants
+      str_detect(program_raw, regex("^chp(s)?$|\\bchp\\b", ignore_case = TRUE)) ~ "CHP",
+
+      # nets
+      str_detect(program_raw, regex("net", ignore_case = TRUE)) ~ "Net distribution",
+
+      # screening
+      str_detect(program_raw, regex("cancer screening|cervical cancer screening|\\bscreening\\b", ignore_case = TRUE)) ~ "Screening",
+
+      # outreach
+      str_detect(program_raw, regex("outreach|community based health organisation", ignore_case = TRUE)) ~ "Community outreach",
+
+      # dignity
+      str_detect(program_raw, regex("dignity for girls", ignore_case = TRUE)) ~ "Dignity for girls",
+
+      # insurance
+      str_detect(program_raw, regex("sha registration|social health insurance", ignore_case = TRUE)) ~ "Health insurance registration",
+
+      # maternal
+      str_detect(program_raw, regex("maternal|expectant mothers", ignore_case = TRUE)) ~ "Maternal health",
+
+      # none/no
+      str_detect(program_raw, regex("^no$|^none$", ignore_case = TRUE)) ~ "None",
+
+      TRUE ~ str_to_sentence(program_raw)
+    )
+  ) %>%
+  count(program_group, geo_community, name = "Count") %>%
+  pivot_wider(
+    names_from = geo_community,
+    values_from = Count,
+    values_fill = 0
+  ) %>%
+  arrange(desc(rowSums(select(., where(is.numeric)))))
+
+health_prog_by_comm %>%
+  slice_head(n = 30) %>%
+  gt() %>%
+  tab_header(title = "Health programs mentioned — by community") %>%
+  cols_label(program_group = "Program") %>%
+  fmt_number(columns = where(is.numeric), decimals = 0) %>%
+  opt_row_striping()
+```
+
+## 

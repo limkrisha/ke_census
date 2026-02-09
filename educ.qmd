@@ -19,6 +19,77 @@ source(here("code", "1_setup.R"))
 
 ```{r educ, echo = F}
 
-make_tbl_by_comm(clean, school_vars, cont = "edu_children_schoolage_num") 
+make_tbl_by_comm(clean, school_vars, cont = "edu_children_schoolage_num")  %>%  
+  as_gt() %>%
+  opt_row_striping()
+```
+
+## Reasons why not all children are in school
+
+```{r notinschool, echo = F}
+tbl_reason <- make_multi_tbl_by_comm(clean, "edu_children_schoolage_not_attend_reason")
+tbl_reason %>% 
+  as_gt() %>%
+  opt_row_striping()
+```
+
+### Other responses why not all children are in school
+
+```{r, echo = F}
+reason_by_comm <- other_tables_long[["edu_children_schoolage_not_attend_reason"]] %>%
+  filter(!is.na(other_text), other_text != "") %>%
+  mutate(other_group = standardize_sust_other(other_text)) %>%
+  group_by(geo_community, other_group) %>%
+  summarise(Count = dplyr::n(), .groups = "drop") %>%
+  arrange(desc(Count))
+
+reason_by_comm %>%
+  rename(Community = geo_community, `Other (grouped)` = other_group) %>%
+  gt() %>%
+  tab_header(title = "Other reasons (by community)") %>%
+  fmt_number(columns = Count, decimals = 0)
+```
+
+## Education (continued)
+
+```{r educ_cont, echo = F}
+
+make_tbl_by_comm(clean, school_vars2)  %>%  
+  as_gt() %>%
+  opt_row_striping()
+```
+
+## 
+
+## Responses to "Other" for education level you hope your child can finish
+
+```{r educother, echo=F}
+standardize_aspire_other <- function(x) {
+  x_std <- x %>%
+    stringr::str_to_lower() %>%
+    stringr::str_squish()
+
+  dplyr::case_when(
+    stringr::str_detect(x_std, "master|masters") ~ "Masters degree",
+    stringr::str_detect(x_std, "technical|tvet|vocational") ~ "Technical / vocational",
+    stringr::str_detect(x_std, "not\\s*finish|drop") ~ "Not finished",
+    TRUE ~ stringr::str_to_sentence(x_std)
+  )
+}
+
+asp_other_by_comm <- clean %>%
+  filter(!is.na(edu_aspire_level_other), edu_aspire_level_other != "") %>%
+  mutate(other_group = standardize_aspire_other(edu_aspire_level_other)) %>%
+  count(geo_community, other_group, name = "Count") %>%
+  arrange(desc(Count))
+
+asp_other_by_comm %>%
+  gt::gt() %>%
+  gt::cols_label(
+    geo_community = "Community",
+    other_group = "Other aspiration"
+  ) %>%
+  gt::fmt_number(columns = Count, decimals = 0) %>%
+  gt::opt_row_striping()
 
 ```
