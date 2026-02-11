@@ -57,10 +57,22 @@ sust_other_by_comm <- other_tables_long[["sust_project_list"]] %>%
   arrange(desc(Count))
 
 sust_other_by_comm %>%
+  arrange(geo_community) %>%
   rename(Community = geo_community, `Other (grouped)` = other_group) %>%
   gt() %>%
   tab_header(title = "Other sustainability projects mentioned (by community)") %>%
-  fmt_number(columns = Count, decimals = 0)
+  fmt_number(columns = Count, decimals = 0) %>%
+  opt_row_striping() %>%
+  tab_style(
+  style = cell_borders(
+    sides = "bottom",
+    color = "#d1d5db",
+    weight = px(2)
+  ),
+  locations = cells_body(
+    rows = Community != dplyr::lead(Community)
+  ))
+
 ```
 
 ## Parent involvement and Income-generating activities
@@ -98,10 +110,21 @@ iga_other_by_comm <- other_tables_long[["sust_school_iga_list"]] %>%
   dplyr::arrange(dplyr::desc(Count))
 
 iga_other_by_comm %>%
+  arrange(geo_community) %>%
   dplyr::rename(Community = geo_community, `Other (grouped)` = other_group) %>%
   gt::gt() %>%
   gt::tab_header(title = "Other sustainability projects mentioned (by community)") %>%
-  gt::fmt_number(columns = Count, decimals = 0)
+  gt::fmt_number(columns = Count, decimals = 0) %>%
+  opt_row_striping() %>%
+  tab_style(
+  style = cell_borders(
+    sides = "bottom",
+    color = "#d1d5db",
+    weight = px(2)
+  ),
+  locations = cells_body(
+    rows = Community != dplyr::lead(Community)
+  ))
 ```
 
 Note: One enumerator clicked "Farming" and "Other" but left a blank on the specify field, so that's why there's 7 "Other" but only 6 actual specified responses.
@@ -134,11 +157,22 @@ iga_support_by_comm <- other_tables_long[["sust_support_need"]] %>%
   arrange(desc(Count))
 
 iga_support_by_comm %>%
+  arrange(geo_community) %>%
   rename(
     Community = geo_community,
     `Other (grouped)` = other_group
   ) %>%
   gt() %>%
   tab_header(title = "Sustainability support needed (by community)") %>%
-  fmt_number(columns = Count, decimals = 0)
+  fmt_number(columns = Count, decimals = 0) %>%
+    opt_row_striping() %>%
+  tab_style(
+  style = cell_borders(
+    sides = "bottom",
+    color = "#d1d5db",
+    weight = px(2)
+  ),
+  locations = cells_body(
+    rows = Community != dplyr::lead(Community)
+  ))
 ```

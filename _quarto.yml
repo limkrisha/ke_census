@@ -16,6 +16,8 @@ website:
         href: sustainability.qmd
       - text: "Health"
         href: health.qmd
+      - text: "Water"
+        href: water.qmd
 
 format:
   html:

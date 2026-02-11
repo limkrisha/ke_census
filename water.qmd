@@ -1,0 +1,142 @@
+---
+title: "Kenya Census"
+format:
+  html:
+    theme: cosmo
+    page-layout: full
+    toc: false
+    css: styles.css
+editor: visual
+---
+
+```{r load, echo = F, message = F, warning=F}
+pacman::p_load(dplyr, here, tidyverse, readr, readxl, janitor, gtsummary, lubridate, gtsummary)
+source(here("code", "1_setup.R"))
+
+```
+
+# Source of drinking water
+
+```{r water_source, echo = F}
+tbl_water_source <- make_multi_tbl_by_comm(clean, "water_source_drinking_list")
+tbl_water_source %>% 
+  as_gt() %>%
+  opt_row_striping()
+
+```
+
+### Other source of drinking water
+
+```{r ongoing_other, echo = F}
+water_other_by_comm <- other_tables_long[["water_source_drinking_list"]] %>%
+  filter(!is.na(other_text), other_text != "") %>%
+  mutate(other_group = standardize_sust_other(other_text)) %>%
+  group_by(geo_community, other_group) %>%
+  summarise(Count = dplyr::n(), .groups = "drop") %>%
+  arrange(desc(Count))
+
+water_other_by_comm %>%
+  arrange(geo_community) %>%
+  rename(
+    Community = geo_community,
+    `Other (grouped)` = other_group
+  ) %>%
+  gt() %>%
+  tab_header(
+    title = "Other drinking water sources mentioned (by community)"
+  ) %>%
+  fmt_number(columns = Count, decimals = 0) %>%
+  opt_row_striping() %>%
+  tab_style(
+  style = cell_borders(
+    sides = "bottom",
+    color = "#d1d5db",
+    weight = px(2)
+  ),
+  locations = cells_body(
+    rows = Community != dplyr::lead(Community)
+  )
+)
+```
+
+# Source of drinking water
+
+```{r water_q, echo = F}
+water_vars_1 <- c(
+  "water_source_410",
+  "water_payment", "water_collect_location", "water_fetch_time", "water_shortage_12mo"
+)
+
+tbl_water_1 <- make_tbl_by_comm(clean, water_vars_1)
+tbl_water_1   %>% 
+  as_gt() %>%
+  opt_row_striping()
+```
+
+# Water Harvesting
+
+```{r harvest, echo = F}
+water_harvest <- c("water_rain_harvest_any")
+tbl_water_harvest <- make_tbl_by_comm(clean, water_harvest)
+tbl_water_harvest   %>% 
+  as_gt() %>%
+  opt_row_striping()
+
+# methods
+water_harvest_methods <- make_multi_tbl_by_comm(clean, "water_rain_harvest_list")
+water_harvest_methods %>% 
+  as_gt() %>%
+  opt_row_striping()
+```
+
+# Water Treatment
+
+```{r water_treat, echo = F}
+water_treat <- c("water_treat_any")
+tbl_water_treat <- make_tbl_by_comm(clean, water_treat) %>%
+  as_gt() %>%
+  opt_row_striping()
+
+tbl_water_treat
+
+# methods
+water_treat_methods <- make_multi_tbl_by_comm(clean, "water_treat_method")
+water_harvest_methods %>% 
+  as_gt() %>%
+  opt_row_striping()
+
+# other 
+water_treat_other_by_comm <- other_tables_long[["water_treat_method"]] %>%
+  filter(!is.na(other_text), other_text != "") %>%
+  mutate(other_group = standardize_sust_other(other_text)) %>%
+  group_by(geo_community, other_group) %>%
+  summarise(Count = dplyr::n(), .groups = "drop") %>%
+  arrange(desc(Count))
+
+water_treat_other_by_comm %>%
+  arrange(geo_community) %>%
+  rename(Community = geo_community, `Other (grouped)` = other_group) %>%
+  gt() %>%
+  tab_header(title = "Other water treatment mentioned (by community)") %>%
+  fmt_number(columns = Count, decimals = 0) %>%
+  opt_row_striping() %>%
+  tab_style(
+  style = cell_borders(
+    sides = "bottom",
+    color = "#d1d5db",
+    weight = px(2)
+  ),
+  locations = cells_body(
+    rows = Community != dplyr::lead(Community)
+  ))
+```
+
+# Water Security
+
+```{r wise, echo = F}
+water_wise <- c("water_wise_worry", "water_wise_plan_change", "water_wise_no_handwash","water_wise_less_drink")
+tbl_water_wise <- make_tbl_by_comm(clean, water_wise)
+tbl_water_wise   %>% 
+  as_gt() %>%
+  opt_row_striping()
+```

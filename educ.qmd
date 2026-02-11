@@ -44,10 +44,21 @@ reason_by_comm <- other_tables_long[["edu_children_schoolage_not_attend_reason"]
   arrange(desc(Count))
 
 reason_by_comm %>%
+  arrange(geo_community) %>%
   rename(Community = geo_community, `Other (grouped)` = other_group) %>%
   gt() %>%
   tab_header(title = "Other reasons (by community)") %>%
-  fmt_number(columns = Count, decimals = 0)
+  fmt_number(columns = Count, decimals = 0) %>%
+  opt_row_striping() %>%
+  tab_style(
+  style = cell_borders(
+    sides = "bottom",
+    color = "#d1d5db",
+    weight = px(2)
+  ),
+  locations = cells_body(
+    rows = Community != dplyr::lead(Community)
+  ))
 ```
 
 ## Education (continued)
@@ -84,12 +95,22 @@ asp_other_by_comm <- clean %>%
   arrange(desc(Count))
 
 asp_other_by_comm %>%
+  arrange(geo_community) %>%
   gt::gt() %>%
   gt::cols_label(
     geo_community = "Community",
     other_group = "Other aspiration"
   ) %>%
   gt::fmt_number(columns = Count, decimals = 0) %>%
-  gt::opt_row_striping()
+  opt_row_striping() %>%
+  tab_style(
+  style = cell_borders(
+    sides = "bottom",
+    color = "#d1d5db",
+    weight = px(2)
+  ),
+  locations = cells_body(
+    rows = geo_community != dplyr::lead(geo_community)
+  ))
 
 ```
